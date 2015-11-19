@@ -182,7 +182,7 @@ def sys_path_with_modifications(evaluator, module):
         # normal path.
         return list(evaluator.sys_path)
 
-    curdir = os.path.abspath(os.curdir)
+    curdir = os.path.abspath(unicode(os.curdir))
     with common.ignored(OSError):
         os.chdir(os.path.dirname(module.path))
 
