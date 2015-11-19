@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import os
 from textwrap import dedent
 
@@ -64,6 +65,14 @@ def test_sys_path_with_modifications():
     p.module.path = os.path.abspath(os.path.join(os.curdir, 'module_name.py'))
     paths = sys_path_with_modifications(Evaluator(grammar), p.module)
     assert '/tmp/.buildout/eggs/important_package.egg' in paths
+
+
+@cwd_at(u('test/test_evaluate/buildout_project/src/中文/'))
+def test_sys_path_with_modifications_unicode():
+    grammar = load_grammar()
+    p = Parser(grammar, u(''))
+    p.module.path = 'some_path'
+    sys_path_with_modifications(Evaluator(grammar), p.module)
 
 
 def test_path_from_sys_path_assignment():
