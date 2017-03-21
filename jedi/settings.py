@@ -76,6 +76,8 @@ Caching
 import os
 import platform
 
+from jedi._compatibility import is_py3
+
 # ----------------
 # completion output settings
 # ----------------
@@ -169,6 +171,9 @@ Check for `isinstance` and other information to infer a type.
 auto_import_modules = [
     'hashlib',  # setattr
 ]
+# socket uses setattr for several methods on Python 2.
+if not is_py3:
+    auto_import_modules.append('socket')
 """
 Modules that are not analyzed but imported, although they contain Python code.
 This improves autocompletion for libraries that use ``setattr`` or
