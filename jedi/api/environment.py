@@ -234,7 +234,7 @@ def find_virtualenvs(paths=None, **kwargs):
 
                 try:
                     executable = _get_executable_path(path, safe=safe)
-                    yield Environment(path, executable)
+                    yield Environment(executable)
                 except InvalidPythonEnvironment:
                     pass
 
