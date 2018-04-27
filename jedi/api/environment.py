@@ -94,7 +94,7 @@ class Environment(_BaseEnvironment):
                     stdout, stderr))
         self.executable = output[0]
         self.path = output[1]
-        match_version = re.match(rb'(\d+)\.(\d+)\.(\d+)', output[2])
+        match_version = re.match(br'(\d+)\.(\d+)\.(\d+)', output[2])
         if match_version is None:
             raise InvalidPythonEnvironment(
                 "Could not get version information (stdout=%r, stderr=%r)" % (
