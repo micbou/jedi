@@ -57,21 +57,24 @@ class Environment(_BaseEnvironment):
         """
         The path to an environment, matches ``sys.prefix``.
         """
-        self.executable = os.path.abspath(executable)
+        self.executable = None
         """
         The Python executable, matches ``sys.executable``.
         """
-        self.version_info = self._get_version()
+        self.version_info = None
         """
         Like ``sys.version_info``. A tuple to show the current Environment's
         Python version.
         """
+        self._get_version(executable)
 
-    def _get_version(self):
+    def _get_version(self, executable):
         try:
             process = GeneralizedPopen([
-                self.executable,
-                'import sys; print(sys.prefix); '
+                executable, '-c',
+                'import sys;'
+                'print(sys.executable);'
+                'print(sys.prefix);'
                 'print("%d.%d.%d" % sys.version_info[:3])'],
                 stdout=PIPE, stderr=PIPE)
             stdout, stderr = process.communicate()
@@ -85,18 +88,20 @@ class Environment(_BaseEnvironment):
                 "Could not get version information: %r" % exc)
 
         output = stdout.splitlines()
-        if len(output) != 2:
+        if len(output) != 3:
             raise InvalidPythonEnvironment(
                 "Could not get version information (stdout=%r, stderr=%r)" % (
                     stdout, stderr))
-        self.path = output[0]
-        match_version = re.match(r'(\d+)\.(\d+)\.(\d+)', output[1])
+        self.executable = output[0]
+        self.path = output[1]
+        match_version = re.match(rb'(\d+)\.(\d+)\.(\d+)', output[2])
         if match_version is None:
             raise InvalidPythonEnvironment(
                 "Could not get version information (stdout=%r, stderr=%r)" % (
                     stdout, stderr))
 
-        return _VersionInfo(*[int(m) for m in match_version.groups()])
+        self.version_info = _VersionInfo(*[int(m)
+                                           for m in match_version.groups()])
 
     def __repr__(self):
         version = '.'.join(str(i) for i in self.version_info)
