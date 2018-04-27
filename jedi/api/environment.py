@@ -87,14 +87,14 @@ class Environment(_BaseEnvironment):
             raise InvalidPythonEnvironment(
                 "Could not get version information: %r" % exc)
 
-        output = stdout.splitlines()
+        output = stdout.decode('utf-8').splitlines()
         if len(output) != 3:
             raise InvalidPythonEnvironment(
                 "Could not get version information (stdout=%r, stderr=%r)" % (
                     stdout, stderr))
         self.executable = output[0]
         self.path = output[1]
-        match_version = re.match(br'(\d+)\.(\d+)\.(\d+)', output[2])
+        match_version = re.match(r'(\d+)\.(\d+)\.(\d+)', output[2])
         if match_version is None:
             raise InvalidPythonEnvironment(
                 "Could not get version information (stdout=%r, stderr=%r)" % (
