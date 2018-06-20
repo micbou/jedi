@@ -381,8 +381,11 @@ if is_py3:
 else:
     import Queue as queue
 
-
-import pickle
+try:
+    # Attempt to laod the C version of pickle on Python 2 as it is much faster.
+    import cPickle as pickle
+except ImportError:
+    import pickle
 if sys.version_info[:2] == (3, 3):
     """
     Monkeypatch the unpickler in Python 3.3. This is needed, because the
