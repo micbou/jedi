@@ -3,14 +3,12 @@ Environments are a way to activate different Python versions or Virtualenvs for
 static analysis. The Python binary in that environment is going to be executed.
 """
 import os
-import re
 import sys
 import hashlib
 import filecmp
-from subprocess import PIPE
 from collections import namedtuple
 
-from jedi._compatibility import GeneralizedPopen, which
+from jedi._compatibility import which
 from jedi.cache import memoize_method, time_cache
 from jedi.evaluate.compiled.subprocess import get_subprocess, \
     EvaluatorSameProcess, EvaluatorSubprocess
@@ -46,6 +44,14 @@ class _BaseEnvironment(object):
             return self._hash
 
 
+def _get_info():
+    return (
+        sys.executable,
+        sys.prefix,
+        sys.version_info[:3],
+    )
+
+
 class Environment(_BaseEnvironment):
     """
     This class is supposed to be created by internal Jedi architecture. You
@@ -53,55 +59,32 @@ class Environment(_BaseEnvironment):
     functions instead. It is then returned by that function.
     """
     def __init__(self, executable):
-        self.path = None
-        """
-        The path to an environment, matches ``sys.prefix``.
-        """
-        self.executable = None
+        try:
+            self._subprocess = get_subprocess(executable)
+            info = self._subprocess._send(None, _get_info)
+        except Exception as exc:
+            raise InvalidPythonEnvironment(
+                "Could not get version information (%r)" % exc)
+
+        self.executable = info[0]
         """
         The Python executable, matches ``sys.executable``.
         """
-        self.version_info = None
+        self.path = info[1]
+        """
+        The path to an environment, matches ``sys.prefix``.
+        """
+        self.version_info = _VersionInfo(*info[2])
         """
         Like ``sys.version_info``. A tuple to show the current Environment's
         Python version.
         """
-        self._get_version(executable)
 
-    def _get_version(self, executable):
-        try:
-            process = GeneralizedPopen([
-                executable, '-c',
-                'import sys;'
-                'print(sys.executable);'
-                'print(sys.prefix);'
-                'print("%d.%d.%d" % sys.version_info[:3])'],
-                stdout=PIPE, stderr=PIPE)
-            stdout, stderr = process.communicate()
-            retcode = process.poll()
-            if retcode:
-                raise InvalidPythonEnvironment(
-                    "Exited with %d (stdout=%r, stderr=%r)" % (
-                        retcode, stdout, stderr))
-        except OSError as exc:
-            raise InvalidPythonEnvironment(
-                "Could not get version information: %r" % exc)
+        # py2 sends bytes via pickle apparently?!
+        if self.version_info.major == 2:
+            self.executable = self.executable.decode()
+            self.path = self.path.decode()
 
-        output = stdout.decode('utf-8').splitlines()
-        if len(output) != 3:
-            raise InvalidPythonEnvironment(
-                "Could not get version information (stdout=%r, stderr=%r)" % (
-                    stdout, stderr))
-        self.executable = output[0]
-        self.path = output[1]
-        match_version = re.match(r'(\d+)\.(\d+)\.(\d+)', output[2])
-        if match_version is None:
-            raise InvalidPythonEnvironment(
-                "Could not get version information (stdout=%r, stderr=%r)" % (
-                    stdout, stderr))
-
-        self.version_info = _VersionInfo(*[int(m)
-                                           for m in match_version.groups()])
 
     def __repr__(self):
         version = '.'.join(str(i) for i in self.version_info)
@@ -131,9 +114,10 @@ class Environment(_BaseEnvironment):
 
 class SameEnvironment(Environment):
     def __init__(self):
-        self.path = sys.prefix
-        self.executable = sys.executable
-        self.version_info = _VersionInfo(*sys.version_info[:3])
+        super(SameEnvironment, self).__init__(sys.executable)
+
+    def _get_version(self):
+        return _VersionInfo(*sys.version_info[:3])
 
 
 class InterpreterEnvironment(_BaseEnvironment):
