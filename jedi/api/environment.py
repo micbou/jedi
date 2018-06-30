@@ -85,7 +85,6 @@ class Environment(_BaseEnvironment):
             self.executable = self.executable.decode()
             self.path = self.path.decode()
 
-
     def __repr__(self):
         version = '.'.join(str(i) for i in self.version_info)
         return '<%s: %s in %s>' % (self.__class__.__name__, version, self.path)
@@ -114,10 +113,9 @@ class Environment(_BaseEnvironment):
 
 class SameEnvironment(Environment):
     def __init__(self):
-        super(SameEnvironment, self).__init__(sys.executable)
-
-    def _get_version(self):
-        return _VersionInfo(*sys.version_info[:3])
+        self.executable = sys.executable
+        self.path = sys.prefix
+        self.version_info = _VersionInfo(*sys.version_info[:3])
 
 
 class InterpreterEnvironment(_BaseEnvironment):
