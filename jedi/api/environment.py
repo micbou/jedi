@@ -8,7 +8,7 @@ import hashlib
 import filecmp
 from collections import namedtuple
 
-from jedi._compatibility import which
+from jedi._compatibility import highest_pickle_protocol, which
 from jedi.cache import memoize_method, time_cache
 from jedi.evaluate.compiled.subprocess import get_subprocess, \
     EvaluatorSameProcess, EvaluatorSubprocess
@@ -80,6 +80,10 @@ class Environment(_BaseEnvironment):
         Python version.
         """
 
+        # Adjust pickle protocol according to host and client version.
+        self._subprocess._pickle_protocol = highest_pickle_protocol([
+            sys.version_info, self.version_info])
+
         # py2 sends bytes via pickle apparently?!
         if self.version_info.major == 2:
             self.executable = self.executable.decode()
@@ -93,7 +97,7 @@ class Environment(_BaseEnvironment):
         return EvaluatorSubprocess(evaluator, self._get_subprocess())
 
     def _get_subprocess(self):
-        return get_subprocess(self.executable, self.version_info)
+        return get_subprocess(self.executable)
 
     @memoize_method
     def get_sys_path(self):
